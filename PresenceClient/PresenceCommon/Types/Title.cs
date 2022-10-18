@@ -1,53 +1,52 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
-namespace PresenceCommon.Types
+namespace PresenceCommon.Types;
+
+public class Title
 {
-    public class Title
+    public ulong Magic { get; }
+    public ulong ProgramId { get; }
+    public string Name { get; }
+
+    [StructLayout(LayoutKind.Sequential, Size = 628)]
+    private struct TitlePacket
     {
-        public ulong Magic { get; }
-        public ulong ProgramId { get; }
-        public string Name { get; }
+        [MarshalAs(UnmanagedType.U8)]
+        public readonly ulong magic;
+        [MarshalAs(UnmanagedType.U8)]
+        public readonly ulong programId;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 612)]
+        public readonly byte[] name;
+    }
 
-        [StructLayout(LayoutKind.Sequential, Size = 628)]
-        private struct TitlePacket
+    public Title(byte[] bytes)
+    {
+        var title = DataHandler.ByteArrayToStructure<TitlePacket>(bytes);
+        Magic = title.magic;
+
+        if (title.programId == 0)
         {
-            [MarshalAs(UnmanagedType.U8)]
-            public ulong magic;
-            [MarshalAs(UnmanagedType.U8)]
-            public ulong programId;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 612)]
-            public byte[] name;
+            ProgramId = 0x0100000000001000;
+            Name = "Home Menu";
         }
-
-        public Title(byte[] bytes)
+        else
         {
-            TitlePacket title = DataHandler.ByteArrayToStructure<TitlePacket>(bytes);
-            Magic = title.magic;
-
-            if (title.programId == 0)
+            ProgramId = title.programId;
+            Name = Encoding.UTF8.GetString(title.name, 0, title.name.Length).Split('\0')[0];
+        }
+        if (title.programId == 0xffaadd23)
+        {
+            if (Utils.QuestOverrides.ContainsKey(Name) && Utils.QuestOverrides[Name].CustomName != null)
             {
-                ProgramId = 0x0100000000001000;
-                Name = "Home Menu";
+                Name = Utils.QuestOverrides[Name].CustomName;
             }
-            else
+        }
+        else
+        {
+            if (Utils.SwitchOverrides.ContainsKey($"0{ProgramId:x}") && Utils.SwitchOverrides[$"0{ProgramId:x}"].CustomName != null)
             {
-                ProgramId = title.programId;
-                Name = Encoding.UTF8.GetString(title.name, 0, title.name.Length).Split('\0')[0];
-            }
-            if (title.programId == 0xffaadd23)
-            {
-                if (Utils.QuestOverrides.ContainsKey(Name) && Utils.QuestOverrides[Name].CustomName != null)
-                {
-                    Name = Utils.QuestOverrides[Name].CustomName;
-                }
-            }
-            else
-            {
-                if (Utils.SwitchOverrides.ContainsKey($"0{ProgramId:x}") && Utils.SwitchOverrides[$"0{ProgramId:x}"].CustomName != null)
-                {
-                    Name = Utils.SwitchOverrides[$"0{ProgramId:x}"].CustomName;
-                }
+                Name = Utils.SwitchOverrides[$"0{ProgramId:x}"].CustomName;
             }
         }
     }

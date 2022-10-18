@@ -1,8 +1,7 @@
-﻿namespace PresenceClient_GUI
+﻿namespace PresenceClient_GUI;
+
+public class Config
 {
-    public class Config
-    {
-        public string IP, Client, BigKey, BigText, SmallKey, State;
-        public bool DisplayTimer, AllowTray, DisplayMainMenu, SeenAutoMacPrompt, AutoToMac;
-    }
+    public string Ip, Client, BigKey, BigText, SmallKey, State;
+    public bool DisplayTimer, AllowTray, DisplayMainMenu, SeenAutoMacPrompt, AutoToMac;
 }

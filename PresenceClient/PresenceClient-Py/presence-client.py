@@ -30,7 +30,7 @@ except:
 class Title:
 
     def __init__(self, raw_data):
-        unpacker = struct.Struct('2L612s')
+        unpacker = struct.Struct('2L620s')
         enc_data = unpacker.unpack(raw_data)
         self.magic = int(enc_data[0])
         if int(enc_data[1]) == 0:

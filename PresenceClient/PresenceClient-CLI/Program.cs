@@ -1,149 +1,145 @@
-﻿using CommandLine;
-using DiscordRPC;
-using PresenceCommon;
-using PresenceCommon.Types;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Timers;
-using Timer = System.Timers.Timer;
+using CommandLine;
+using DiscordRPC;
+using PresenceCommon;
+using PresenceCommon.Types;
 
-namespace PresenceClient_CLI
+namespace PresenceClient_CLI;
+
+internal class Program
 {
-    class Program
-    {
-        static Timer timer;
-        static Socket client;
-        static string LastProgramName = string.Empty;
-        static Timestamps time = null;
-        static DiscordRpcClient rpc;
-        static ConsoleOptions Arguments;
+    private static Timer _timer;
+    private static Socket _client;
+    private static string _lastProgramName = string.Empty;
+    private static Timestamps _time;
+    private static DiscordRpcClient _rpc;
+    private static ConsoleOptions _arguments;
 
-        static int Main(string[] args)
-        {
-            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
-            Parser.Default.ParseArguments<ConsoleOptions>(args)
+    private static int Main(string[] args)
+    {
+        AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+        Parser.Default.ParseArguments<ConsoleOptions>(args)
             .WithParsed(arguments =>
             {
-                if (!IPAddress.TryParse(arguments.IP, out IPAddress iPAddress))
+                if (!IPAddress.TryParse(arguments.Ip, out var iPAddress))
                 {
                     Console.WriteLine("Invalid IP");
                     Environment.Exit(1);
                 }
-                arguments.ParsedIP = iPAddress;
-                rpc = new DiscordRpcClient(arguments.ClientID.ToString());
-                Arguments = arguments;
+                arguments.ParsedIp = iPAddress;
+                _rpc = new DiscordRpcClient(arguments.ClientId.ToString());
+                _arguments = arguments;
             })
-            .WithNotParsed(errors => Environment.Exit(1));
+            .WithNotParsed(_ => Environment.Exit(1));
 
-            if (!rpc.Initialize())
-            {
-                Console.WriteLine("Unable to start RPC!");
-                return 2;
-            }
-
-            IPEndPoint localEndPoint = new IPEndPoint(Arguments.ParsedIP, 0xCAFE);
-
-            timer = new Timer()
-            {
-                Interval = 15000,
-                Enabled = false,
-            };
-            timer.Elapsed += new ElapsedEventHandler(OnConnectTimeout);
-
-            while (true)
-            {
-                client = new Socket(SocketType.Stream, ProtocolType.Tcp)
-                {
-                    ReceiveTimeout = 5500,
-                    SendTimeout = 5500,
-                };
-
-                timer.Enabled = true;
-
-                try
-                {
-                    IAsyncResult result = client.BeginConnect(localEndPoint, null, null);
-                    bool success = result.AsyncWaitHandle.WaitOne(2000, true);
-                    if (!success)
-                    {
-                        //UpdateStatus("Could not connect to Server! Retrying...", Color.DarkRed);
-                        client.Close();
-                    }
-                    else
-                    {
-                        client.EndConnect(result);
-                        timer.Enabled = false;
-
-                        DataListen();
-                    }
-                }
-                catch (SocketException)
-                {
-                    client.Close();
-                    if (rpc != null && !rpc.IsDisposed) rpc.ClearPresence();
-                }
-            }
+        if (!_rpc.Initialize())
+        {
+            Console.WriteLine("Unable to start RPC!");
+            return 2;
         }
 
-        private static void DataListen()
-        {
-            while (true)
-            {
-                try
-                {
-                    byte[] bytes = Utils.ReceiveExactly(client);
+        var localEndPoint = new IPEndPoint(_arguments.ParsedIp, 0xCAFE);
 
-                    Title title = new Title(bytes);
-                    if (title.Magic == 0xffaadd23)
+        _timer = new Timer
+        {
+            Interval = 15000,
+            Enabled = false,
+        };
+        _timer.Elapsed += OnConnectTimeout;
+
+        while (true)
+        {
+            _client = new Socket(SocketType.Stream, ProtocolType.Tcp)
+            {
+                ReceiveTimeout = 5500,
+                SendTimeout = 5500
+            };
+
+            _timer.Enabled = true;
+
+            try
+            {
+                var result = _client.BeginConnect(localEndPoint, null, null);
+                var success = result.AsyncWaitHandle.WaitOne(2000, true);
+                if (!success)
+                {
+                    //UpdateStatus("Could not connect to Server! Retrying...", Color.DarkRed);
+                    _client.Close();
+                }
+                else
+                {
+                    _client.EndConnect(result);
+                    _timer.Enabled = false;
+
+                    DataListen();
+                }
+            }
+            catch (SocketException)
+            {
+                _client.Close();
+                if (_rpc != null && !_rpc.IsDisposed) _rpc.ClearPresence();
+            }
+        }
+    }
+
+    private static void DataListen()
+    {
+        while (true)
+        {
+            try
+            {
+                var bytes = Utils.ReceiveExactly(_client);
+
+                var title = new Title(bytes);
+                if (title.Magic == 0xffaadd23)
+                {
+                    if (_lastProgramName != title.Name)
                     {
-                        if (LastProgramName != title.Name)
-                        {
-                            time = Timestamps.Now;
-                        }
-                        if ((rpc != null && rpc.CurrentPresence == null) || LastProgramName != title.Name)
-                        {
-                            if (Arguments.IgnoreHomeScreen && title.Name == "Home Menu")
-                            {
-                                rpc.ClearPresence();
-                            }
-                            else
-                            {
-                                rpc.SetPresence(Utils.CreateDiscordPresence(title, time));
-                            }
-                            LastProgramName = title.Name;
-                        }
+                        _time = Timestamps.Now;
+                    }
+
+                    if (_rpc is not { CurrentPresence: null } && _lastProgramName == title.Name) continue;
+                    if (_arguments.IgnoreHomeScreen && title.Name == "Home Menu")
+                    {
+                        _rpc.ClearPresence();
                     }
                     else
                     {
-                        if (rpc != null && !rpc.IsDisposed) rpc.ClearPresence();
-                        client.Close();
-                        return;
+                        _rpc.SetPresence(Utils.CreateDiscordPresence(title, _time));
                     }
+                    _lastProgramName = title.Name;
                 }
-                catch (SocketException)
+                else
                 {
-                    if (rpc != null && !rpc.IsDisposed) rpc.ClearPresence();
-                    client.Close();
+                    if (_rpc != null && !_rpc.IsDisposed) _rpc.ClearPresence();
+                    _client.Close();
                     return;
                 }
             }
+            catch (SocketException)
+            {
+                if (_rpc != null && !_rpc.IsDisposed) _rpc.ClearPresence();
+                _client.Close();
+                return;
+            }
         }
+    }
 
-        private static void OnConnectTimeout(object sender, ElapsedEventArgs e)
-        {
-            LastProgramName = string.Empty;
-            time = null;
-        }
+    private static void OnConnectTimeout(object sender, ElapsedEventArgs e)
+    {
+        _lastProgramName = string.Empty;
+        _time = null;
+    }
 
-        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
-        {
-            if (client != null && client.Connected)
-                client.Close();
+    private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
+    {
+        if (_client != null && _client.Connected)
+            _client.Close();
 
-            if(rpc != null && !rpc.IsDisposed)
-                rpc.Dispose();
-        }
+        if(_rpc != null && !_rpc.IsDisposed)
+            _rpc.Dispose();
     }
 }

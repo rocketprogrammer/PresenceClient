@@ -1,11 +1,14 @@
-﻿namespace PresenceClient_GUI
+using System.ComponentModel;
+using System.Windows.Forms;
+
+namespace PresenceClient_GUI
 {
     partial class MainForm
     {
         /// <summary>
         /// Required designer variable.
         /// </summary>
-        private System.ComponentModel.IContainer components = null;
+        private IContainer components = null;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -68,10 +71,11 @@
             // clientBox
             // 
             this.clientBox.Location = new System.Drawing.Point(78, 73);
-            this.clientBox.MaxLength = 18;
+            this.clientBox.MaxLength = 20;
             this.clientBox.Name = "clientBox";
             this.clientBox.Size = new System.Drawing.Size(100, 20);
             this.clientBox.TabIndex = 3;
+            this.clientBox.TextChanged += new System.EventHandler(this.clientBox_TextChanged);
             // 
             // label1
             // 
@@ -310,28 +314,28 @@
         }
 
         #endregion
-        private System.Windows.Forms.Button connectButton;
-        private System.Windows.Forms.TextBox clientBox;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.LinkLabel linkLabel1;
-        private System.Windows.Forms.CheckBox checkTime;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox stateBox;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.TextBox smallKeyBox;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.TextBox bigKeyBox;
-        private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.TextBox bigTextBox;
-        private System.Windows.Forms.Label statusLabel;
-        private System.Windows.Forms.NotifyIcon trayIcon;
-        private System.Windows.Forms.ContextMenuStrip trayContextMenu;
-        private System.Windows.Forms.ToolStripMenuItem trayExitMenuItem;
-        private System.Windows.Forms.CheckBox checkTray;
-        private System.Windows.Forms.ToolStripMenuItem connectToolStripMenuItem;
-        private System.Windows.Forms.CheckBox checkMainMenu;
-        private System.Windows.Forms.TextBox addressBox;
-        private System.Windows.Forms.CheckBox UseMacDefault;
+        private Button connectButton;
+        private TextBox clientBox;
+        private Label label1;
+        private LinkLabel linkLabel1;
+        private CheckBox checkTime;
+        private Label label2;
+        private TextBox stateBox;
+        private Label label3;
+        private TextBox smallKeyBox;
+        private Label label4;
+        private TextBox bigKeyBox;
+        private Label label5;
+        private TextBox bigTextBox;
+        private Label statusLabel;
+        private NotifyIcon trayIcon;
+        private ContextMenuStrip trayContextMenu;
+        private ToolStripMenuItem trayExitMenuItem;
+        private CheckBox checkTray;
+        private ToolStripMenuItem connectToolStripMenuItem;
+        private CheckBox checkMainMenu;
+        private TextBox addressBox;
+        private CheckBox UseMacDefault;
     }
 }
 
